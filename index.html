@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR & Barcode Generator PRO</title>
+
+<!-- Libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  background: #eef1f5;
+  padding: 20px;
+}
+
+.wrapper {
+  max-width: 620px;
+  margin: auto;
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.15);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+label {
+  font-weight: 600;
+  margin-top: 10px;
+  display: block;
+}
+
+input, select {
+  width: 100%;
+  padding: 9px;
+  margin-top: 4px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #0d6efd;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button.secondary { background:#198754 }
+button.export { background:#6c757d }
+
+#labelArea {
+  margin-top: 16px;
+  border: 1px dashed #aaa;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+/* ==== FIX CANH GIỮA QR ==== */
+#qrWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+}
+
+#qrcode img,
+#qrcode canvas {
+  display: block;
+}
+
+/* ==== FIX CANH GIỮA BARCODE ==== */
+#barcodeWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+}
+
+#barcode {
+  display: block;
+}
+
+#labelArea h3 {
+  margin: 4px 0;
+}
+
+footer {
+  text-align: center;
+  font-size: 13px;
+  margin-top: 14px;
+  color: #666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper" id="exportArea">
+  <h2>QR & Barcode Generator PRO</h2>
+
+  <label>Chọn kiểu mã</label>
+  <select id="mode" onchange="toggleMode()">
+    <option value="auto">Tự động (Auto)</option>
+    <option value="manual">Nhập mã (Manual)</option>
+  </select>
+
+  <label>Mã</label>
+  <input id="code">
+
+  <label>Nội dung hiển thị</label>
+  <input id="content" placeholder="Thiết bị / Sự cố / Vật tư">
+
+  <label>Kích thước tem</label>
+  <select id="size">
+    <option value="160">A7 (nhỏ)</option>
+    <option value="200">A6</option>
+    <option value="260">A4</option>
+  </select>
+
+  <button onclick="generate()">Tạo QR & Barcode</button>
+
+  <!-- TEM -->
+  <div id="labelArea">
+    <h3>HỆ THỐNG QUẢN LÝ</h3>
+
+    <div id="qrWrapper">
+      <div id="qrcode"></div>
+    </div>
+
+    <div id="barcodeWrapper">
+      <svg id="barcode"></svg>
+    </div>
+
+    <p id="textShow"></p>
+    <small id="dateShow"></small>
+  </div>
+
+  <button class="secondary" onclick="downloadJPG()">Tải JPG</button>
+  <button class="export" onclick="downloadPDF()">Tải PDF</button>
+
+  <footer>
+    Phát triển bởi <b>Do Nguyen</b> & ChatGPT
+  </footer>
+</div>
+
+<script>
+function autoCode() {
+  const d = new Date();
+  const code =
+    "AD-" +
+    d.getDate().toString().padStart(2,'0') +
+    (d.getMonth()+1).toString().padStart(2,'0') +
+    d.getFullYear().toString().slice(-2) +
+    "-" +
+    Math.floor(Math.random()*90000000+10000000);
+
+  document.getElementById("code").value = code;
+}
+
+function toggleMode() {
+  const mode = document.getElementById("mode").value;
+  if (mode === "auto") {
+    document.getElementById("code").readOnly = true;
+    autoCode();
+  } else {
+    document.getElementById("code").readOnly = false;
+    document.getElementById("code").value = "";
+  }
+}
+
+// default auto
+autoCode();
+
+function generate() {
+  const code = document.getElementById("code").value.trim();
+  if (!code) {
+    alert("Vui lòng nhập mã!");
+    return;
+  }
+
+  const text = document.getElementById("content").value || code;
+  const size = parseInt(document.getElementById("size").value);
+
+  document.getElementById("qrcode").innerHTML = "";
+  document.getElementById("textShow").innerText = text;
+  document.getElementById("dateShow").innerText =
+    "Ngày tạo: " + new Date().toLocaleString();
+
+  // QR
+  new QRCode("qrcode", {
+    text: code,
+    width: size,
+    height: size
+  });
+
+  // Barcode
+  JsBarcode("#barcode", code, {
+    format: "CODE128",
+    width: 2,
+    height: 60,
+    displayValue: true,
+    margin: 0,
+    textAlign: "center"
+  });
+
+  // Fix lại viewBox để nó nằm chính giữa
+  const svg = document.querySelector("#barcode svg");
+  if (svg) {
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  }
+}
+
+function downloadJPG() {
+  html2canvas(document.getElementById("labelArea")).then(canvas => {
+    const a = document.createElement("a");
+    a.href = canvas.toDataURL("image/jpeg", 1);
+    a.download = document.getElementById("code").value + ".jpg";
+    a.click();
+  });
+}
+
+function downloadPDF() {
+  html2canvas(document.getElementById("labelArea")).then(canvas => {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "mm", "a4");
+    pdf.addImage(
+      canvas.toDataURL("image/png"),
+      "PNG",
+      15,
+      20,
+      180,
+      0
+    );
+    pdf.save(document.getElementById("code").value + ".pdf");
+  });
+}
+</script>
+
+</body>
+</html>
